@@ -52,7 +52,7 @@ from dm_hazedumper_offsets import *
 save_name = 'dm_test_expert_' # stub name of file to save as
 
 # folder_name = 'F:/2021/csgo_bot_train_july2021/'
-folder_name = 'D:/projects/data_collecting/csgo/debug/'
+folder_name = 'D:/projects/data_collect/csgo/debug/'
 # starting_value = get_highest_num(save_name, folder_name)+1 # set to one larger than whatever found so far
 starting_value = 1
 

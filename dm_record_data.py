@@ -88,7 +88,7 @@ game = windll.kernel32.OpenProcess(PROCESS_ALL_ACCESS, 0, pid[1])
 
 SAVE_TRAIN_DATA = True
 IS_PAUSE = False # pause saving of data
-n_loops = 0 # how many frames looped 
+n_loops = 0 # how many frames looped
 training_data=[]
 img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
 print('starting loop, press q to quit...')
@@ -124,7 +124,8 @@ while True:
         print('not recording, not live')
         # seem to need to restart the gsi connection between each game
         server.server_close()
-        server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+        # server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+        server = MyServer(('localhost', 3000), 'AAAAA', MyRequestHandler)
         server.handle_request()
 
         while server.data_all['map']['phase']!='live' and server.data_all['map']['phase']!='warmup':
@@ -142,7 +143,8 @@ while True:
             ReleaseKey(w_char)
 
             server.server_close()
-            server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+            # server = MyServer(('localhost', 3000), 'MYTOKENHERE', MyRequestHandler)
+            server = MyServer(('localhost', 3000), 'AAAAA', MyRequestHandler)
             server.handle_request()
             if 'map' not in server.data_all.keys(): # hacky way to avoid this triggering failure
                 server.data_all['map']={}
@@ -208,7 +210,7 @@ while True:
     else: # else if not observing, just use me as player
         obs_address = player
         obs_id=None
-        
+
     # get player info
     curr_vars['obs_health'] = read_memory(game,(obs_address + m_iHealth), "i")
     curr_vars['obs_fov'] = read_memory(game,(obs_address + m_iFOVStart),'i') # m_iFOVStart m_iFOV
@@ -221,7 +223,7 @@ while True:
     curr_vars['height'] = read_memory(game,(obs_address + m_vecViewOffset + 0x8), "f") # this returns z height of player, goes between 64.06 and 46.04
 
     # get player velocity, x,y,z
-    curr_vars['vel_1'] = read_memory(game,(obs_address + m_vecVelocity), "f") 
+    curr_vars['vel_1'] = read_memory(game,(obs_address + m_vecVelocity), "f")
     curr_vars['vel_2'] = read_memory(game,(obs_address + m_vecVelocity + 0x4), "f")
     curr_vars['vel_3'] = read_memory(game,(obs_address + m_vecVelocity + 0x8), "f")
     curr_vars['vel_mag'] = np.sqrt(curr_vars['vel_1']**2 + curr_vars['vel_2']**2 )
@@ -233,7 +235,7 @@ while True:
 
     # zvert_rads is 0 when staring at ground, pi when starting at ceiling
     curr_vars['zvert_rads'] = (-curr_vars['viewangle_vert'] + 90)/360 * (2*np.pi)
-    
+
     # xy_rad is 0 and 2pi when pointing true 'north', increasing from 0 to 2pi as turn clockwise, so pi when point south
     if curr_vars['viewangle_xy']<0:
         xy_deg = -curr_vars['viewangle_xy']
@@ -273,7 +275,7 @@ while True:
     # get weapon info
     weapon_handle = read_memory(game,obs_address + m_hActiveWeapon, "i")
     weapon_address = read_memory(game,off_clientdll + dwEntityList + ((weapon_handle & 0xFFF)-1)*0x10, "i")
-    curr_vars['itemdef'] = read_memory(game,(weapon_address + m_iItemDefinitionIndex), "i") 
+    curr_vars['itemdef'] = read_memory(game,(weapon_address + m_iItemDefinitionIndex), "i")
     curr_vars['ammo_active'] = read_memory(game,(weapon_address + m_iClip1), "i")
 
     try:

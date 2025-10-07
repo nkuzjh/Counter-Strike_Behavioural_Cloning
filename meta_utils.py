@@ -77,6 +77,8 @@ class MyServer(HTTPServer):
         self.round_phase = None
         self.player_status = None
 
+    # 仅debug使用
+    # 永久运行，持续获取gsi post数据
     def serve_forever(self, poll_interval=0.5):
         """Handle one request at a time until shutdown.
 
@@ -106,6 +108,7 @@ class MyServer(HTTPServer):
             self.__shutdown_request = False
             self.__is_shut_down.set()
 
+    # 单次获取gsi post数据
     def handle_request(self):
         """Handle one request, possibly blocking.
 
@@ -177,12 +180,12 @@ class MyServer(HTTPServer):
         """Finish one request by instantiating RequestHandlerClass."""
         return self.RequestHandlerClass(request, client_address, self)
 
+# request handler: 处理tcpserver请求的post数据
 # need this running in the background
 class MyRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers['Content-Length'])
         body = self.rfile.read(length).decode('utf-8')
-
 
         # # # 打印n
         payload = json.loads(body)
@@ -199,13 +202,13 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             return False
 
     def parse_payload(self, payload):
+        # cs2 gsi接口与csgo gsi接口不一样，gsi信息中不包含token，因此忽略验证
         # Ignore unauthenticated payloads
         # if not self.is_payload_authentic(payload):
         #     return None
 
-        # print(payload)n
+        # print(payload)
         self.server.data_all = payload.copy()
-
 
         if False:
             print('\n')
@@ -243,10 +246,22 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         return
 
 
-assert 1==1, "这里需要在steam的csgo路径下更新 TOKEN配置文件，参考链接如下： https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/"
+# 这里需要在steam的csgo路径下更新 TOKEN配置文件。
+# 参考链接：
+    # https://developer.valvesoftware.com/wiki/Zh/Counter-Strike:_Global_Offensive_Game_State_Integration
+    # https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/
+    # https://github.com/tiggerdine/strat-roulette-bot
+    # https://github.com/mdarvanaghi/CSGO-GSI"
+
+# TLDR：
+# gamestate_integration_umzhh.cfg文件放在 STEAM_CSGO_GAME_PATH/csgo/cfg/gsi_configs/ 目录下。格式为Valve公司的KeyValue，不是json。编码字符集为UTF-8，不是UTF-8 BOM。
+# cs2 gsi接口与csgo gsi接口不一样，gsi信息中不包含token，因此token=AAAAA实际未生效。
+
 server = MyServer(('localhost', 3000), 'AAAAA', MyRequestHandler)
+
+# 仅debug使用
 # while True:
 #     server.handle_request()
 # server.serve_forever()
-print(f'server listening at http://localhost:3000, with token {server.auth_token}')
+# print(f'server listening at http://localhost:3000, with token {server.auth_token}')
 

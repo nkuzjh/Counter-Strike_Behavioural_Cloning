@@ -1,24 +1,11 @@
-# Counter-Strike Deathmatch with Large-Scale Behavioural Cloning
-[Tim Pearce](https://twitter.com/Tea_Pearce), [Jun Zhu](https://ml.cs.tsinghua.edu.cn/~jun/index.shtml)  
-IEEE Conference on Games (CoG) 2022 [⭐️ Best Paper Award!]. Also presented at Offline RL workshop, NeurIPS 2021  
-ArXiv paper: https://arxiv.org/abs/2104.04258 (Contains some extra experiments not in CoG version)  
-CoG paper: https://ieee-cog.org/2022/assets/papers/paper_45.pdf  
-Four minute introduction video: https://youtu.be/rnz3lmfSHv0  
-Gameplay examples: https://youtu.be/KTY7UhjIMm4  
+# CSGO^2: CrosS-view GeOlocalization based on Counter-Strike: Global Offensive in-game scenes
 
 
-<img height="200" src="gif_data_01.gif"><img height="200" src="gif_gameplay_01.gif">
-
-<img height="200" src="NN_overview.png">
-
-
-[comment]: <> (Previous version of agent: https://youtu.be/p01vWk7uMvM)
 
 ## Contents
 
 1. [Code Overview](#code-overview)
-2. [Trained Models](#trained-models)
-3. [Datasets](#datasets)
+3. [Data Collect](#data-collect)
 4. [Requirements](#requirements)
 5. [License](#license)
 6. [Disclaimer](#disclaimer)
@@ -26,21 +13,21 @@ Gameplay examples: https://youtu.be/KTY7UhjIMm4
 8. [Troubleshooting](#troubleshooting)
 
 
+
 ## Code Overview
 
-We briefly describe the workflow: dataset capture -> data processing -> training -> testing. 
-1) Use ```dm_record_data.py``` to scrape data as a spectator, or ```dm_record_data_me_wasd.py``` to record when actively playing. This creates .npy files with screenshots and metadata. 
-2) Run ```dm_infer_actions.py``` on .npy files from step 1 to infer actions from the metadata ('inverse dynamics model'). These are appended to the same .npy files. The visulations and stats produced by this script can be used to clean the data -- e.g. if the metadata from GSI and RAM disagrees for some variables, this is a sign that the data might be unreliable, if there are long periods of immobility (```vel_static```), this can mean you were tracking a motionless player. We suggest deleting such files.
-3) Run ```dm_pretrain_process.py``` on .npy files from step 2, this creates new .hdf5 files containing screenshots and onehot targets. 
-4) (Optional.) Run ```tools_extract_metaadata.py``` to pull out metadata from the .npy files, saves as new .npy file.
-5) Run ```dm_train_model.py``` to train a model.
-6) Use ```tools_create_stateful.py``` to create a 'stateful' version of the model.
-7) Script ```dm_run_agent.py``` runs the model in the CSGO environment.
+We briefly describe the workflow: dataset capture -> data processing -> training -> testing.
+1) put ```gamestate_integration_umzhh.cfg``` to CS2 game config path, details in ```meta_utils.py```.
+2) Use ```dm_record_data.py``` to scrape data as a spectator, or ```dm_record_data_me_wasd.py``` to record when actively playing. This creates .npy files with screenshots and metadata.
+3) [TODO] Run ```dm_infer_actions.py``` on .npy files from step 1 to infer actions from the metadata ('inverse dynamics model'). These are appended to the same .npy files. The visulations and stats produced by this script can be used to clean the data -- e.g. if the metadata from GSI and RAM disagrees for some variables, this is a sign that the data might be unreliable, if there are long periods of immobility (```vel_static```), this can mean you were tracking a motionless player. We suggest deleting such files.
+4) [TODO] Run ```dm_pretrain_process.py``` on .npy files from step 2, this creates new .hdf5 files containing screenshots and onehot targets.
+5) [TODO] (Optional.) Run ```tools_extract_metaadata.py``` to pull out metadata from the .npy files, saves as new .npy file.
 
 
 Brief overview of each script's purpose.
 
-
+- ```gamestate_integration_umzhh.cfg```
+    : Contains configuration to get metadata from GS2 Game State Integration(GSI) while playing games.
 - ```config.py```
     : Contains key global hyperparameters and settings. Also several functions used across many scripts.
 - ```screen_input.py```
@@ -82,197 +69,118 @@ Brief overview of each script's purpose.
 
 
 
-## Trained Models
+## Data Collect [TODO]
 
-Four trained models are provided. There are 'non-stateful' (use during training) and 'stateful' (use at test time) versions of each.  
-Models can be downloaded at (under ```/trained_models``` folder): https://huggingface.co/datasets/TeaPearce/CounterStrike_Deathmatch/tree/main .
+A brief description of dataset and directory structure is given below.
 
-- ```ak47_sub_55k_drop_d4```
-    : Pretrained on AK47 sequences only.
-- ```ak47_sub_55k_drop_d4_dmexpert_28```
-    : Finetuned on expert deathmatch data.
-- ```ak47_sub_55k_drop_d4_aimexpertv2_60```
-    : Finetuned on aim mode expert data.
-- ```July_remoterun7_g9_4k_n32_recipe_ton96__e14```
-    : Pretrained on full dataset.
-
-
-## Datasets
-
-All datasets are available at: https://huggingface.co/datasets/TeaPearce/CounterStrike_Deathmatch . A brief description of dataset and directory structure is given below. (Since moving to huggingface these have been zipped into .tar files.)
-
-- ```dataset_dm_scraped_dust2_tars/hdf5_dm_july2021_*.hdf5```
-    - each .tar contains 200 .hdf5 files
-    - total files: 5500
-    - approx size: 700 GB
-    - map: dust2
-    - gamemode: deathmatch
-    - source: scraped from online servers
-    - UPDATE: these files have been shifted to ```dataset_dm_scraped_dust2_tars/``` in 200 file chunks to make downloading from onedrive less painful.
-
-- ```dataset_dm_expert_dust2/hdf5_dm_july2021_expert_*.hdf5```
-    - total files: 190
-    - approx size: 24 GB
-    - map: dust2
-    - gamemode: deathmatch
-    - source: manually created, clean actions
-
-- ```dataset_aim_expert/hdf5_aim_july2021_expert_*.hdf5```
-    - total files: 45
-    - approx size: 6 GB
-    - map: aim map
-    - gamemode: aim mode
-    - source: manually created, clean actions
-
-- ```dataset_dm_expert_othermaps/hdf5_dm_nuke_expert_*.hdf5```
-    - total files: 10
-    - approx size: 1 GB
-    - map: nuke
-    - gamemode: deathmatch
-    - source: manually created, clean actions
-
-- ```dataset_dm_expert_othermaps/hdf5_dm_mirage_expert_*.hdf5```
-    - total files: 10
-    - approx size: 1 GB
-    - map: mirage
-    - gamemode: deathmatch
-    - source: manually created, clean actions
-
-- ```dataset_dm_expert_othermaps/hdf5_dm_inferno_expert_*.hdf5```
-    - total files: 10
-    - approx size: 1 GB
-    - map: mirage
-    - gamemode: deathmatch
-    - source: manually created, clean actions
-
-- ```dataset_metadata/currvarsv2_dm_july2021_*_to_*.npy, currvarsv2_dm_july2021_expert_*_to_*.npy, currvarsv2_dm_mirage_expert_1_to_100.npy, currvarsv2_dm_inferno_expert_1_to_100.npy, currvarsv2_dm_nuke_expert_1_to_100.npy, currvarsv2_aim_july2021_expert_1_to_100.npy```
-    - total files: 55 + 2 + 1 + 1 + 1 + 1 = 61
-    - approx size: 6 GB
+- screenshots ```*.png```
+    - FPS image obtained by grabing CS2 running window with mss library.
+    - Cropped and resized to (150, 280, 3).
     - map: as per filename
     - gamemode: as per filename
     - source: as per filename
 
-- ```location_trackings_backup/```
-    - total files: 305
-    - approx size: 0.5 GB
-    - map: dust2
-    - gamemode: deathmatch
-    - source: contains metadata used to compute map coverage analysis
-        - **currvarsv2_agentj22** is the agent trained over the full online dataset
-        - **currvarsv2_agentj22_dmexpert20** is previous model finetuned on the clean expert dust2 dataset
-        - **currvarsv2_bot_capture** is medium difficulty built-in bot
+- metadata ```*.npy```
+    - metadata obtained by GSI, needs to be further processed into the format required.
+    - np.array(dtype=object), size=(1000,2), screenshots and metadata.
+    - map: as per filename
+    - gamemode: as per filename
+    - source: as per filename
 
+- [TODO] hdf5 ```*.hdf5```
+    - hdf5 files, containing screenshots and onehot targets, are obtained by running ```dm_pretrain_process.py```.
+    - map: as per filename
+    - gamemode: as per filename
+    - source: manually created, clean actions
 
+### Structure of .hdf5 files (image and action labels):[TODO]
 
-### Structure of .hdf5 files (image and action labels): 
-
-Each file contains an ordered sequence of 1000 frames (~1 minute) of play. 
+Each file contains an ordered sequence of 1000 frames (~1 minute) of play.
 This contains screenshots, as well as processed action labels.
 We chose .hdf5 format for fast dataloading, since a subset of frames can be accessed without opening the full file.
 The lookup keys are as follows (where i is frame number 0-999)
-- **frame_i_x**: is the image 
+- **frame_i_x**: is the image
 - **frame_i_xaux**: contains actions applied in previous timesteps, as well as health, ammo, and team. see dm_pretrain_preprocess.py for details, note this was not used in our final version of the agent
 - **frame_i_y**: contains target actions in flattened vector form; [keys_pressed_onehot, Lclicks_onehot, Rclicks_onehot, mouse_x_onehot, mouse_y_onehot]
 - **frame_i_helperarr**: in format [kill_flag, death_flag], each a binary variable, e.g. [1,0] means the player scored a kill and did not die in that timestep
 
-### Structure of .npy files (scraped metadata): 
+### Structure of .npy files (scraped metadata):[TODO]
 
 Each .npy file contains metadata corresponding to 100 .hdf5 files (as indicated by file name)
 They are dictionaries with keys of format: file_numi_frame_j for file number i, and frame number j in 0-999
-The values are of format **[curr_vars, infer_a, frame_i_helperarr]** where, 
+The values are of format **[curr_vars, infer_a, frame_i_helperarr]** where,
 - **curr_vars**: contains a dictionary of the metadata originally scraped -- see dm_record_data.py for details
 - **infer_a**: are inferred actions, [keys_pressed,mouse_x,mouse_y,press_mouse_l,press_mouse_r], with mouse_x and y being continuous values and keys_pressed is in string format
 - **frame_i_helperarr**: is a repeat of the .hdf5 file
 
 
+
 ## Requirements
 
 ### Python and OS requirements
-Below are the Python package versions used in development. The OS used for interacting with the game (testing and recording) was Windows, and for model training was Linux. 
+Below are the Python package versions used in development, which is borrowed from DIAMOND[https://github.com/eloialonso/diamond/tree/csgo]. Maybe there are several missed libraries need to install manually(do not worry compatibility issues). The OS used for interacting with the game (data collecting) was Windows.
 ```
-Python: '3.6.9' 
-tensorflow: '2.3.0'
-tensorflow.keras: '2.4.0'
-h5py: '2.10.0'
-numpy: '1.18.5'
-OpenCV (cv2): '4.4.0'
-scipy: '1.4.1'
-ctypes: '1.1.0'
-json: '2.0.9'
+conda create -n diamond python=3.10
+conda activate diamond
+pip install:
+    gymnasium==0.29.1
+    ale-py==0.9.0
+    h5py==3.11.0
+    huggingface-hub==0.17.2
+    hydra-core==1.3
+    numpy==1.26.0
+    opencv-python==4.10.0.84
+    pillow==10.3.0
+    pygame==2.5.2
+    torch==2.4.1
+    torcheval==0.0.7
+    tqdm==4.66.4
+    wandb==0.17.0
 ```
 
 ### Hardware
 
-Running the agent requires making forward passes through a large convolutional neural networks at 16 fps. If you do not have a CUDA enabled GPU, the agent's performance may degrade.
-
+CS2 can be running without GPU. But taking care of window ratio and resolution in game setting.
 
 ### CSGO requirements
-We collected the datasets and conducted testing over game versions 1.37.7.0 to 1.38.0.1. CSGO is continually updated and this may affect performance. The map dust2 received minor updates in 1.38.0.2. To test on the map from version 1.38.0.1, download here: https://steamcommunity.com/sharedfiles/filedetails/?id=2606435621. Future updates to gameplay may also degrade performance, consider rolling back the CSGO game version in this case. 
+
+We collected the datasets and conducted testing based on game version : 1.41.1.2/14112 10553 insecure  public. CS2 is continually updated and this may affect performance. Future updates to gameplay may also degrade performance, consider rolling back the CSGO game version in this case.
 
 Game State Integration (GSI) is used to pull out some metadata about the game. The ```dm_run_agent.py``` script is written so that it may be run without installing GSI (option ```IS_GSI```). If you'd like to record data or extract metadata while running the agent, you'll need to set up GSI: https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/ and update ```MYTOKENHERE``` in ```meta_utils.py```.
 
-Game settings (resolution, cross hair, mouse sensitivity etc) are documented in the paper, appendix E.
+Details in ```meta_utils.py```.
 
 
 
-
-
-## License
+## License[TODO]
 This repo can be used for personal projects and open-sourced research. We do not grant a license for its commercial use in any form. If in doubt, please contact us for permission.
 
+[TODO]: Map copyright of Valve
+
+
+
 ## Disclaimer
-Whilst our code is not intended for cheating/hacking purposes, it's possible that Valve may detect the usage of some of these scripts in game (for example simulated mouse movements and RAM parsing) which in turn might lead to suspicion of cheating. We accept no liability for these sort of issues. Use it at your own risk! 
+Whilst our code is not intended for cheating/hacking purposes, it's possible that Valve may detect the usage of some of these scripts in game (for example simulated mouse movements and RAM parsing) which in turn might lead to suspicion of cheating. We accept no liability for these sort of issues. Use it at your own risk!
+
+
 
 ## Maintenance
-This repo shares code used for _academic research_. It's not production ready. It's unlikely to be robust across operating systems, python versions, python packages, future CSGO updates etc. There's no plan to actively maintain this repo for these purposes, nor to fix minor bugs. If you'd like to help out with this, please reach out.
+This repo shares code used for _academic research_. It's not production ready. It's unlikely to be robust across operating systems, python versions, python packages, future CS2 updates etc. There's no plan to actively maintain this repo for these purposes, nor to fix minor bugs. If you'd like to help out with this, please reach out.
+
 
 
 ## Troubleshooting
-A few tips that might help get the agent working on your local system (with thanks to  Mert Can Çakmak https://github.com/Mccakmak).
-- Ensure you've matched the game settings used. Particularly important are resolution and mouse settings:
-
+A few tips that might help get the code working on your local system.
+- Ensure you've matched the game settings used. Particularly important are resolution:
     - Game resolution: Normal 4:3, 1024×768, windowed
-    - Mouse sensitivity: 2.50
-    - Mouse raw input: Off
-    - Reverse mouse: Off
-    - Mouse acceleration: Off
-    - Crosshair settings: Classic static, green – RGB: (46, 250, 42), length 4.3, thickness 1.8, gap 2.0, no outline, no centre dot. (Length 2.8 also used in some training data and demos.)
-    - (Or use crosshair code: CSGO-UKcZG-QN8eW-WQMvd-NX6xr-RPqRP)
-    - All graphics options: Lowest quality setting
-    - Boost Player Contrast: Enabled
-    - Multisampling AA Mode: 2x MSAA
-    - HUD edge positions: as large as possible
-    - HUD scale: 0.56
-    - HUD color: Default
-    - Radar HUD size: 0.80
-    - Clear decals is bound to ‘n’ key (https://www.skinwallet.com/csgo/clear-decals-csgo/)
+- Ensure the code can find your game window -- e.g. as of Feb 2022 the game is updated to CS2, so you should use
+```hwin_csgo = win32gui.FindWindow(None,'Counter-Strike 2')```
+- Run ```screen_input.py``` directly to test whether screenshots are being captured correctly. As the ```win32ui``` is invalid on CS2, we use ```mss``` library to capture screenshot from game window. Details in ```screen_input.py```.
+- Setting ```IS_DEMO=True``` in ```dm_run_agent.py``` should display the input received by the agent and action selection visualisations, which might highlight issues.
+- Is the agent processing the actions quickly enough? -- uncomment ```print('arrived later than wanted to :/, took ',round(time.time() - loop_start_time,4))``` in ```config.py``` to display warnings.
 
-- You may also want to match the view model settings used in the paper (probably less important):
 
-    - cl_righthand 1
-    - viewmodel_offset_x 1
-    - viewmodel_offset_y 1
-    - viewmodel_offset_z  -1
-    - viewmodel_fov 60
-    - cl_bobamt_lat 0.33
-    - cl_bobamt_vert 0.14
-    - cl_bobcycle 0.98
-    - cl_viewmodel_shift_left_amt 1.5
-    - cl_viewmodel_shift_right_amt 0.75
 
-- Ensure the code can find your game window -- e.g. as of Feb 2022 the window was renamed, so you should use
-```hwin_csgo = win32gui.FindWindow(None,'Counter-Strike: Global Offensive - Direct3D 9')```
-- Run ```screen_input.py```  directly to test whether screenshots are being captured correctly
-- Hardcode some actions in ```dm_run_agent.py``` to see if they have desired effect, e.g. set ```mouse_x_smooth``` to a small constant, does the agent spin? Try similar for ```Lclicks``` and ```keys_pressed```
-- One user reported having to include at top of ```dm_run_agent.py```:
-```
-import win32com.client
-shell = win32com.client.Dispatch("WScript.Shell")
-shell.SendKeys('%')
-```
-- Setting ```IS_DEMO=True``` in ```dm_run_agent.py``` should display the input received by the agent and action selection visualisations, which might highlight issues
-- Is the agent processing the actions quickly enough? -- uncomment ```print('arrived later than wanted to :/, took ',round(time.time() - loop_start_time,4))``` in ```config.py``` to display warnings. Is the GPU being used by the neural net?
-- Restrict CSGO's frame rate to free up some resources, e.g. run the CSGO console command ```fps_max 64;```.
-- The mouse will appear quite stilted when you watch in real time -- actions are only applied 16 (or 32 if ```IS_SPLIT_MOUSE=True``` ) times per second
-- It's been reported more recent combinations of Python (v3.9) and tensorflow (v2.4.5) lead to different predictions by the neural network (suspected due to differences in the way the model is loaded). It should work mormally with Python v3.6.8 or v3.6.9 and tensorflow v2.3.0.
-
+## References
+- https://github.com/TeaPearce/Counter-Strike_Behavioural_Cloning
+- https://github.com/eloialonso/diamond
