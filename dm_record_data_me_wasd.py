@@ -49,12 +49,15 @@ if True:
 
 from dm_hazedumper_offsets import *
 
-save_name = 'dm_test_expert_' # stub name of file to save as
+save_name = 'dm_test_' # stub name of file to save as
 
 # folder_name = 'F:/2021/csgo_bot_train_july2021/'
-folder_name = 'D:/projects/data_collect/csgo/debug/'
-# starting_value = get_highest_num(save_name, folder_name)+1 # set to one larger than whatever found so far
+# folder_name = 'D:/projects/data_collect/csgo/debug/'
+folder_name = 'D:/projects/data_collect/csgo/fps/'
+os.makedirs(folder_name, exist_ok=True)
+# set to one larger than whatever found so far
 starting_value = 1
+starting_value = get_highest_num(save_name, folder_name)+1
 
 is_show_img = False
 
@@ -76,12 +79,12 @@ list_of_modules=handle.list_modules()
 while(list_of_modules!=None):
     try:
         tmp=next(list_of_modules)
-        if(tmp.name=="engine.dll"):
-            print('found engine.dll')
+        if(tmp.name=="engine2.dll"):
+            print('found engine2.dll')
             off_enginedll=tmp.lpBaseOfDll
             break
     except StopIteration:
-        print('ran out of modules looking for engine.dll')
+        print('ran out of modules looking for engine2.dll')
         break
 
 list_of_modules=handle.list_modules()
@@ -108,7 +111,7 @@ n_loops = 0 # how many times loop through
 training_data=[]
 # img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
 img_small = grab_window_mss(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
-cv2.imwrite(folder_name+save_name+f'grab_window_mss_img_small.png', img_small)
+cv2.imwrite(folder_name + f'grad_window_mss_init.png', img_small)
 print('starting loop, press q to quit...')
 while True:
     loop_start_time = time.time()

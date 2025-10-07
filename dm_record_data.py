@@ -30,7 +30,7 @@ from key_output import ctrl_char, shift_char, space_char
 from key_output import r_char, one_char, two_char, three_char, four_char, five_char
 from key_output import p_char, e_char, c_char_, t_char, cons_char, ret_char
 
-from screen_input import grab_window
+from screen_input import grab_window, grab_window_mss
 from config import *
 from meta_utils import *
 
@@ -44,14 +44,16 @@ if True:
 from dm_hazedumper_offsets import *
 
 save_name = 'dm_test_' # stub name of file to save as
-folder_name = 'F:/2021/csgo_bot_train_july2021/'
-# starting_value = get_highest_num(save_name, folder_name)+1 # set to one larger than whatever found so far
+folder_name = 'D:/projects/data_collect/csgo/spectator/'
+os.makedirs(folder_name, exist_ok=True)
+# set to one larger than whatever found so far
 starting_value = 1
+starting_value = get_highest_num(save_name, folder_name)+1
 
 is_show_img = False
 
 # now find the requried process and where two modules (dll files) are in RAM
-hwin_csgo = win32gui.FindWindow(0, ('counter-Strike: Global Offensive'))
+hwin_csgo = win32gui.FindWindow(0, ('counter-Strike 2'))
 if(hwin_csgo):
     pid=win32process.GetWindowThreadProcessId(hwin_csgo)
     handle = pymem.Pymem()
@@ -71,13 +73,15 @@ while(list_of_modules!=None):
         print('found client.dll')
         off_clientdll=tmp.lpBaseOfDll
         break
+
 list_of_modules=handle.list_modules()
 while(list_of_modules!=None):
-    tmp=next(list_of_modules)
-    if(tmp.name=="engine.dll"):
-        print('found engine.dll')
-        off_enginedll=tmp.lpBaseOfDll
-        break
+    tmp=next(list_of_modules, None)
+    if tmp != None:
+        if(tmp.name=="engine2.dll"):
+            print('found engine2.dll')
+            off_enginedll=tmp.lpBaseOfDll
+            break
 
 # not sure what this bit does? sets up reading/writing from RAM I guess
 OpenProcess = windll.kernel32.OpenProcess
@@ -90,7 +94,8 @@ SAVE_TRAIN_DATA = True
 IS_PAUSE = False # pause saving of data
 n_loops = 0 # how many frames looped
 training_data=[]
-img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
+img_small = grab_window_mss(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
+cv2.imwrite(folder_name + f'grad_window_mss_init.png', img_small)
 print('starting loop, press q to quit...')
 while True:
     loop_start_time = time.time()
@@ -185,6 +190,9 @@ while True:
     curr_vars['gsi_kills'] = server.data_all['player']['match_stats']['kills']
     curr_vars['gsi_deaths'] = server.data_all['player']['match_stats']['deaths']
     curr_vars['gsi_weapons'] = server.data_all['player']['weapons']
+    curr_vars['gsi_position'] = server.data_all['player']['position']
+    curr_vars['gsi_forward'] = server.data_all['player']['forward']
+    # curr_vars['gsi_spectarget'] = server.data_all['player']['spectarget']
 
     # get GSI active weapon
     curr_vars['found_active']=False
@@ -300,8 +308,9 @@ while True:
 
         if len(training_data) >= 1000:
             # save about every minute
-            file_name = folder_name+save_name+'{}.npy'.format(starting_value)
-            np.save(file_name,training_data)
+            file_name = folder_name + save_name+'{}.npy'.format(starting_value)
+            training_data = np.asanyarray(training_data, dtype=object)
+            np.save(file_name, training_data)
             print('SAVED', starting_value)
             training_data = []
             starting_value += 1
@@ -315,9 +324,10 @@ while True:
 
     # grab image
     if SAVE_TRAIN_DATA:
-        img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=is_show_img)
+        img_small = grab_window_mss(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=is_show_img)
         # we put the image grab last as want the time lag to match when
         # will be running fwd pass through NN
 
     wait_for_loop_end(loop_start_time, loop_fps, n_loops, is_clear_decals=True)
 
+1

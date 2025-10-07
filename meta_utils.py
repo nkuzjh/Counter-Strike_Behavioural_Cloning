@@ -43,18 +43,18 @@ def getlength(type):
         return 4
 
 def read_memory(game, address, type):
-    # buffer = (ctypes.c_byte * getlength(type))()
-    buffer = c_int(0)
-    # bytesRead = ctypes.c_ulonglong(0)
-    bytesRead = c_ulong(0)
-    # readlength = getlength(type)
-    readlength = sizeof(c_int)
+    buffer = (ctypes.c_byte * getlength(type))()
+    # buffer = c_int(0)
+    bytesRead = ctypes.c_ulonglong(0)
+    # bytesRead = c_ulong(0)
+    readlength = getlength(type)
+    # readlength = sizeof(c_int)
     address_ptr = c_void_p(address)
 
     # ReadProcessMemory(game, address, buffer, readlength, byref(bytesRead))
-    ReadProcessMemory(game, address_ptr, byref(buffer), readlength, byref(bytesRead))
-    # return struct.unpack(type, buffer)[0]
-    return buffer.value
+    ReadProcessMemory(game, address_ptr, buffer, readlength, byref(bytesRead))
+    return struct.unpack(type, buffer)[0]
+    # return buffer.value
 
 # stuff for game state integration...
 
@@ -187,7 +187,18 @@ class MyRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers['Content-Length'])
         body = self.rfile.read(length).decode('utf-8')
 
-        # # # 打印n
+        if False:
+            print("\n" + "="*50)
+            print("🎮 CS:GO GSI DATA RECEIVED")
+            print("="*50)
+            try:
+                data = json.loads(body)
+                print(json.dumps(data, indent=2, ensure_ascii=False))
+            except json.JSONDecodeError:
+                print("[Raw body]")
+                print(body)
+            print("="*50 + "\n")
+
         payload = json.loads(body)
         self.parse_payload(payload)
 
@@ -202,10 +213,9 @@ class MyRequestHandler(BaseHTTPRequestHandler):
             return False
 
     def parse_payload(self, payload):
-        # cs2 gsi接口与csgo gsi接口不一样，gsi信息中不包含token，因此忽略验证
         # Ignore unauthenticated payloads
-        # if not self.is_payload_authentic(payload):
-        #     return None
+        if not self.is_payload_authentic(payload):
+            return None
 
         # print(payload)
         self.server.data_all = payload.copy()
@@ -255,7 +265,7 @@ class MyRequestHandler(BaseHTTPRequestHandler):
 
 # TLDR：
 # gamestate_integration_umzhh.cfg文件放在 STEAM_CSGO_GAME_PATH/csgo/cfg/gsi_configs/ 目录下。格式为Valve公司的KeyValue，不是json。编码字符集为UTF-8，不是UTF-8 BOM。
-# cs2 gsi接口与csgo gsi接口不一样，gsi信息中不包含token，因此token=AAAAA实际未生效。
+# cs2 gsi接口的原理是本地http post请求，因此需要在本地开启一个http server来接收post数据。所以需要先运行下面的代码，创建本地http server的实例。再使用handle_request或者serve_forever方法开始监听。
 
 server = MyServer(('localhost', 3000), 'AAAAA', MyRequestHandler)
 

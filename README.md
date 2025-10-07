@@ -142,9 +142,9 @@ pip install:
 
 CS2 can be running without GPU. But taking care of window ratio and resolution in game setting.
 
-### CSGO requirements
+### CS2 requirements
 
-We collected the datasets and conducted testing based on game version : 1.41.1.2/14112 10553 insecure  public. CS2 is continually updated and this may affect performance. Future updates to gameplay may also degrade performance, consider rolling back the CSGO game version in this case.
+We collected the datasets and conducted testing based on game version : 1.41.1.2/14112 10553 insecure  public. CS2 is continually updated and this may affect performance. Future updates to gameplay may also degrade performance, consider rolling back the CS2 game version in this case.
 
 Game State Integration (GSI) is used to pull out some metadata about the game. The ```dm_run_agent.py``` script is written so that it may be run without installing GSI (option ```IS_GSI```). If you'd like to record data or extract metadata while running the agent, you'll need to set up GSI: https://www.reddit.com/r/GlobalOffensive/comments/cjhcpy/game_state_integration_a_very_large_and_indepth/ and update ```MYTOKENHERE``` in ```meta_utils.py```.
 
@@ -173,7 +173,7 @@ This repo shares code used for _academic research_. It's not production ready. I
 A few tips that might help get the code working on your local system.
 - Ensure you've matched the game settings used. Particularly important are resolution:
     - Game resolution: Normal 4:3, 1024×768, windowed
-- Ensure the code can find your game window -- e.g. as of Feb 2022 the game is updated to CS2, so you should use
+- Ensure the code can find your game window -- e.g. as the game is updated to CS2, so you should use
 ```hwin_csgo = win32gui.FindWindow(None,'Counter-Strike 2')```
 - Run ```screen_input.py``` directly to test whether screenshots are being captured correctly. As the ```win32ui``` is invalid on CS2, we use ```mss``` library to capture screenshot from game window. Details in ```screen_input.py```.
 - Setting ```IS_DEMO=True``` in ```dm_run_agent.py``` should display the input received by the agent and action selection visualisations, which might highlight issues.
