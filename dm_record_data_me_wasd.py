@@ -30,7 +30,7 @@ from key_output import ctrl_char, shift_char, space_char
 from key_output import r_char, one_char, two_char, three_char, four_char, five_char
 from key_output import p_char, e_char, c_char_, t_char, cons_char, ret_char
 
-from screen_input import grab_window
+from screen_input import grab_window, grab_window_mss
 from config import *
 from meta_utils import *
 
@@ -51,14 +51,16 @@ from dm_hazedumper_offsets import *
 
 save_name = 'dm_test_expert_' # stub name of file to save as
 
-folder_name = 'F:/2021/csgo_bot_train_july2021/'
+# folder_name = 'F:/2021/csgo_bot_train_july2021/'
+folder_name = 'D:/projects/data_collecting/csgo/debug/'
 # starting_value = get_highest_num(save_name, folder_name)+1 # set to one larger than whatever found so far
 starting_value = 1
 
 is_show_img = False
 
 # now find the requried process and where two modules (dll files) are in RAM
-hwin_csgo = win32gui.FindWindow(0, ('counter-Strike: Global Offensive'))
+# hwin_csgo = win32gui.FindWindow(0, ('counter-Strike: Global Offensive'))
+hwin_csgo = win32gui.FindWindow(0, ('Counter-Strike 2'))
 if(hwin_csgo):
     pid=win32process.GetWindowThreadProcessId(hwin_csgo)
     handle = pymem.Pymem()
@@ -72,19 +74,26 @@ else:
 # now find two dll files needed
 list_of_modules=handle.list_modules()
 while(list_of_modules!=None):
+    try:
+        tmp=next(list_of_modules)
+        if(tmp.name=="engine.dll"):
+            print('found engine.dll')
+            off_enginedll=tmp.lpBaseOfDll
+            break
+    except StopIteration:
+        print('ran out of modules looking for engine.dll')
+        break
+
+list_of_modules=handle.list_modules()
+while(list_of_modules!=None):
     tmp=next(list_of_modules)
     # used to be client_panorama.dll, moved to client.dll during 2020
     if(tmp.name=="client.dll"):
         print('found client.dll')
         off_clientdll=tmp.lpBaseOfDll
         break
-list_of_modules=handle.list_modules()
-while(list_of_modules!=None):
-    tmp=next(list_of_modules)
-    if(tmp.name=="engine.dll"):
-        print('found engine.dll')
-        off_enginedll=tmp.lpBaseOfDll
-        break
+
+
 
 # not sure what this bit does? sets up reading/writing I guess
 OpenProcess = windll.kernel32.OpenProcess
@@ -95,9 +104,11 @@ game = windll.kernel32.OpenProcess(PROCESS_ALL_ACCESS, 0, pid[1]) # returns an i
 
 SAVE_TRAIN_DATA = True
 IS_PAUSE = False # pause saving of data
-n_loops = 0 # how many times loop through 
+n_loops = 0 # how many times loop through
 training_data=[]
-img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
+# img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
+img_small = grab_window_mss(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=False)
+cv2.imwrite(folder_name+save_name+f'grab_window_mss_img_small.png', img_small)
 print('starting loop, press q to quit...')
 while True:
     loop_start_time = time.time()
@@ -165,7 +176,7 @@ while True:
     else: # else if not observing, just use me as player
         obs_address = player
         obs_id=None
-        
+
     # get player info
     curr_vars['obs_health'] = read_memory(game,(obs_address + m_iHealth), "i")
     curr_vars['obs_fov'] = read_memory(game,(obs_address + m_iFOVStart),'i') # m_iFOVStart m_iFOV
@@ -178,26 +189,29 @@ while True:
     curr_vars['height'] = read_memory(game,(obs_address + m_vecViewOffset + 0x8), "f") # this returns z height of player, goes between 64.06 and 46.04
 
     # get player velocity, x,y,z
-    curr_vars['vel_1'] = read_memory(game,(obs_address + m_vecVelocity), "f") 
+    curr_vars['vel_1'] = read_memory(game,(obs_address + m_vecVelocity), "f")
     curr_vars['vel_2'] = read_memory(game,(obs_address + m_vecVelocity + 0x4), "f")
     curr_vars['vel_3'] = read_memory(game,(obs_address + m_vecVelocity + 0x8), "f")
     curr_vars['vel_mag'] = np.sqrt(curr_vars['vel_1']**2 + curr_vars['vel_2']**2 )
 
     # get player view angle, something like yaw and vertical angle
-    enginepointer = read_memory(game,(off_enginedll + dwClientState), "i")
-    curr_vars['viewangle_vert'] = read_memory(game,(enginepointer + dwClientState_ViewAngles), "f")
-    curr_vars['viewangle_xy'] = read_memory(game,(enginepointer + dwClientState_ViewAngles + 0x4), "f")
+    try:
+        enginepointer = read_memory(game,(off_enginedll + dwClientState), "i")
+        curr_vars['viewangle_vert'] = read_memory(game,(enginepointer + dwClientState_ViewAngles), "f")
+        curr_vars['viewangle_xy'] = read_memory(game,(enginepointer + dwClientState_ViewAngles + 0x4), "f")
 
-    # zvert_rads is 0 when staring at ground, pi when starting at ceiling
-    curr_vars['zvert_rads'] = (-curr_vars['viewangle_vert'] + 90)/360 * (2*np.pi)
-    
-    # xy_rad is 0 and 2pi when pointing true 'north', increasing from 0 to 2pi as turn clockwise, so pi when point south
-    if curr_vars['viewangle_xy']<0:
-        xy_deg = -curr_vars['viewangle_xy']
-    elif curr_vars['viewangle_xy']>=0:
-        xy_deg = 360-curr_vars['viewangle_xy']
-    curr_vars['xy_rad'] = xy_deg/360*(2*np.pi)
+        # zvert_rads is 0 when staring at ground, pi when starting at ceiling
+        curr_vars['zvert_rads'] = (-curr_vars['viewangle_vert'] + 90)/360 * (2*np.pi)
 
+        # xy_rad is 0 and 2pi when pointing true 'north', increasing from 0 to 2pi as turn clockwise, so pi when point south
+        if curr_vars['viewangle_xy']<0:
+            xy_deg = -curr_vars['viewangle_xy']
+        elif curr_vars['viewangle_xy']>=0:
+            xy_deg = 360-curr_vars['viewangle_xy']
+        curr_vars['xy_rad'] = xy_deg/360*(2*np.pi)
+    except:
+        print(f'off_enginedll not defined, cant get viewangles')
+        # print(f'off_enginedll not defined, cant get viewangles')wan
     # print('mouse xy_rad',np.round(curr_vars['xy_rad'],2), end='\r')
     # print('obs_hp',curr_vars['obs_health'],'gsi_hp',curr_vars['gsi_health'], curr_vars['gsi_team'], curr_vars['gsi_kills'],'mouse xy_rad',np.round(curr_vars['xy_rad'],2), end='\r')
 
@@ -230,7 +244,7 @@ while True:
     # get weapon info
     weapon_handle = read_memory(game,obs_address + m_hActiveWeapon, "i")
     weapon_address = read_memory(game,off_clientdll + dwEntityList + ((weapon_handle & 0xFFF)-1)*0x10, "i")
-    curr_vars['itemdef'] = read_memory(game,(weapon_address + m_iItemDefinitionIndex), "i") 
+    curr_vars['itemdef'] = read_memory(game,(weapon_address + m_iItemDefinitionIndex), "i")
     curr_vars['ammo_active'] = read_memory(game,(weapon_address + m_iClip1), "i")
 
 
@@ -293,21 +307,23 @@ while True:
         if len(training_data) >= 1000:
             # save about every minute
             file_name = folder_name+save_name+'{}.npy'.format(starting_value)
-            np.save(file_name,training_data)
+            training_data = np.asanyarray(training_data, dtype=object)
+            np.save(file_name, training_data)
             print('SAVED', starting_value)
             training_data = []
             starting_value += 1
-    
+
 
     # grab image
     if SAVE_TRAIN_DATA:
-        img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=is_show_img)
+        # img_small = grab_window(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=is_show_img)
+        img_small = grab_window_mss(hwin_csgo, game_resolution=csgo_game_res, SHOW_IMAGE=is_show_img)
         # we put the image grab last as want the time lag to match when
         # will be running fwd pass through NN
 
     wait_for_loop_end(loop_start_time, loop_fps, n_loops, is_clear_decals=True)
 
-    
+
 
 
 
@@ -315,7 +331,7 @@ while True:
 
 if False:
     # rough code trying to find offsets myself (didn't work v well)
-    
+
     # dwClientState = 5808076 # new one december 2021
     dwClientState = 5804012 # old one 25th August 2021
     enginepointer = read_memory(game,(off_enginedll+ dwClientState), "i")
