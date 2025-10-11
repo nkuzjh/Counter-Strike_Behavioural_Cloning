@@ -190,8 +190,8 @@ while True:
     curr_vars['gsi_kills'] = server.data_all['player']['match_stats']['kills']
     curr_vars['gsi_deaths'] = server.data_all['player']['match_stats']['deaths']
     curr_vars['gsi_weapons'] = server.data_all['player']['weapons']
-    curr_vars['gsi_position'] = server.data_all['player']['position']
-    curr_vars['gsi_forward'] = server.data_all['player']['forward']
+    # curr_vars['gsi_position'] = server.data_all['player']['position']
+    # curr_vars['gsi_forward'] = server.data_all['player']['forward']
     # curr_vars['gsi_spectarget'] = server.data_all['player']['spectarget']
 
     # get GSI active weapon

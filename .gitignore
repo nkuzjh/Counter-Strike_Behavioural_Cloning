@@ -5,3 +5,5 @@ __pycache__/key_output.cpython-310.pyc
 __pycache__/meta_utils.cpython-310.pyc
 __pycache__/screen_input.cpython-310.pyc
 .vscode/launch.json
+
+data/
